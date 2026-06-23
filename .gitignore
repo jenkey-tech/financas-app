@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+!.env.example
+
+# Dados locais e exports
+*.db
+*.sqlite
+*.sqlite3
+backups/
+exports/
+*.log
+*.csv
+*.xlsx
+
+# IDE e SO
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build e testes
+dist/
+build/
+*.spec
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage

@@ -1,0 +1,3 @@
+# Python 3.10+ recomendado
+matplotlib==3.10.3
+ttkbootstrap==1.14.2
