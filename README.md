@@ -31,12 +31,6 @@ Funciona **100% offline** com SQLite. A sincronização com **Supabase** é opci
 
 ---
 
-## Screenshots
-
-> Adicione capturas de tela em `docs/screenshots/` e referencie aqui antes de divulgar.
-
----
-
 ## Como executar
 
 ### 1. Clonar e instalar
