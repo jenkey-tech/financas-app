@@ -15,7 +15,7 @@ Funciona **100% offline** com SQLite. A sincronização com **Supabase** é opci
 - Insights com tendências, top categorias e recomendações
 - Fluxo de caixa e metas financeiras
 - Sync cloud opcional (SQLite local + fila assíncrona para Supabase)
-- Dados de demonstração fictícios na primeira execução
+- Dados de demonstração fictícios disponíveis apenas via `seed_demo_data()` (chamada manual)
 
 ---
 
@@ -49,7 +49,9 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Na primeira execução, o app cria `financas.db` localmente e insere **dados fictícios** de demonstração.
+Na primeira execução, o app cria `financas.db` localmente **sem inserir dados de demonstração automaticamente**.
+
+Para popular dados fictícios de demo/teste, chame explicitamente `seed_demo_data()` em `db.py` (por exemplo via shell Python). Esses dados ficam marcados com `is_demo=1` e **não são enviados** ao Supabase pela sincronização.
 
 ### 3. Sync com Supabase (opcional)
 

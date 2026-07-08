@@ -1,7 +1,7 @@
 """Configurações e constantes do app de finanças.
 
-Categorias e valores abaixo são fictícios, apenas para demonstração
-em instalações novas (seed via DADOS_INICIAIS). Não commitar dados reais.
+Categorias e valores em DADOS_INICIAIS / CONTAS_RECORRENTES são fictícios,
+usados apenas por seed_demo_data() (chamada manual). Não commitar dados reais.
 """
 
 DB_FILE = "financas.db"
@@ -45,7 +45,7 @@ CATEGORIAS_FIXAS = {
 CARTOES = ["Cartão Alpha", "Cartão Beta dia 08", "Cartão Beta dia 15", "Cartão Loja Online"]
 FIXOS = ["Aluguel", "Escola", "Creche", "Internet", "Parcela Móveis", "Contador", "Empréstimo", "Condomínio", "IPTU"]
 
-# Dados fictícios inseridos somente quando o banco local está vazio (primeira execução).
+# Dados fictícios inseridos apenas por seed_demo_data() — nunca automaticamente.
 DADOS_INICIAIS = [
     ("2025-01", "Cartão Alpha", 850.00),
     ("2025-01", "Cartão Beta dia 15", 1200.00),

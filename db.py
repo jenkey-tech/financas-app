@@ -15,7 +15,15 @@ import atexit
 from pathlib import Path
 from datetime import datetime
 
-from config import DB_FILE, BACKUP_DIR, EXPORT_DIR, CATEGORIAS_PADRAO, CONTAS_RECORRENTES, DADOS_INICIAIS
+from config import (
+    DB_FILE,
+    BACKUP_DIR,
+    EXPORT_DIR,
+    CATEGORIAS_PADRAO,
+    CONTAS_RECORRENTES,
+    DADOS_INICIAIS,
+    CARTOES,
+)
 
 
 def load_dotenv(path=".env"):
@@ -41,6 +49,70 @@ _CLOUD_WRITE_QUEUE = queue.Queue()
 _CLOUD_WORKER_STARTED = False
 _CLOUD_WORKER_LOCK = threading.Lock()
 _CLOUD_WRITE_ERRORS = []
+
+_DEMO_CONTAS_BY_NOME = {conta["categoria"]: conta for conta in CONTAS_RECORRENTES}
+_DADOS_INICIAIS_KEYS = frozenset(
+    (mes, categoria, round(float(valor), 2))
+    for mes, categoria, valor in DADOS_INICIAIS
+)
+
+
+def _lancamento_demo_key(mes, categoria, valor):
+    return (mes, categoria, round(float(valor or 0), 2))
+
+
+def _ensure_is_demo_columns(cur):
+    for table in ("lancamentos", "categorias"):
+        try:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN is_demo INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
+
+def _is_demo_lancamento(item):
+    if int(item.get("is_demo") or 0) == 1:
+        return True
+    mes = item.get("mes")
+    categoria = item.get("categoria")
+    valor = item.get("valor")
+    if mes is None or categoria is None or valor is None:
+        return False
+    return _lancamento_demo_key(mes, categoria, valor) in _DADOS_INICIAIS_KEYS
+
+
+def _is_demo_categoria(item):
+    if int(item.get("is_demo") or 0) == 1:
+        return True
+    nome = item.get("nome")
+    if not nome:
+        return False
+    if nome in CARTOES:
+        return True
+    demo = _DEMO_CONTAS_BY_NOME.get(nome)
+    if not demo:
+        return False
+    dia = item.get("dia_vencimento")
+    tipo = item.get("tipo") or "manual"
+    recorrente = int(item.get("recorrente") or 0)
+    ativa = int(item.get("ativa") or 1)
+    return (
+        recorrente == 1
+        and ativa == 1
+        and tipo == (demo["tipo"] or "manual")
+        and dia == demo["dia"]
+    )
+
+
+def _filter_rows_for_supabase_sync(table, rows):
+    if table == "lancamentos":
+        return [row for row in rows if not _is_demo_lancamento(row)]
+    if table == "categorias":
+        return [row for row in rows if not _is_demo_categoria(row)]
+    return rows
+
+
+def _strip_local_only_fields(rows):
+    return [{key: value for key, value in row.items() if key != "is_demo"} for row in rows]
 
 
 def _cloud_worker():
@@ -226,27 +298,12 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
-    for conta in CONTAS_RECORRENTES:
-        cur.execute("""
-            INSERT OR IGNORE INTO categorias (nome, dia_vencimento, tipo, recorrente, ativa)
-            VALUES (?, ?, ?, 1, 1)
-        """, (conta["categoria"], conta["dia"], conta["tipo"]))
-    for nome in CATEGORIAS_PADRAO:
-        cur.execute("""
-            INSERT OR IGNORE INTO categorias (nome, dia_vencimento, tipo, recorrente, ativa)
-            VALUES (?, NULL, 'manual', 0, 1)
-        """, (nome,))
+    _ensure_is_demo_columns(cur)
 
     # Migrações de nomes legados (apenas registros com categorias antigas de versões anteriores).
     cur.execute("UPDATE lancamentos SET categoria='Cartão Alpha' WHERE categoria='Cartão Legado 1'")
     cur.execute("UPDATE lancamentos SET categoria='Cartão Beta dia 15' WHERE categoria='Cartão Legado 2'")
     cur.execute("UPDATE lancamentos SET categoria='Condomínio' WHERE categoria='Condomínio Legado'")
-    cur.execute("SELECT COUNT(*) FROM lancamentos")
-    if cur.fetchone()[0] == 0:
-        cur.executemany(
-            "INSERT OR REPLACE INTO lancamentos (mes, categoria, valor, status_lancamento) VALUES (?, ?, ?, 'Pago')",
-            DADOS_INICIAIS
-        )
     for table in ["lancamentos", "receitas", "metas", "categorias", "pendencias_ignoradas"]:
         try:
             cur.execute(f"UPDATE {table} SET updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)")
@@ -268,6 +325,54 @@ def init_db():
 
 
 
+def seed_demo_data():
+    """Insere categorias e lançamentos fictícios de demonstração.
+
+    Esta função nunca é chamada automaticamente. Use apenas em ambiente de demo
+    ou testes, com chamada explícita (ex.: script, shell, teste).
+    """
+    init_db()
+    con = sqlite3.connect(DB_FILE)
+    cur = con.cursor()
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    categorias_inseridas = 0
+    lancamentos_inseridos = 0
+
+    for conta in CONTAS_RECORRENTES:
+        cur.execute("""
+            INSERT OR IGNORE INTO categorias (
+                nome, dia_vencimento, tipo, recorrente, ativa, is_demo, updated_at
+            )
+            VALUES (?, ?, ?, 1, 1, 1, ?)
+        """, (conta["categoria"], conta["dia"], conta["tipo"], timestamp))
+        categorias_inseridas += cur.rowcount
+
+    for nome in CATEGORIAS_PADRAO:
+        cur.execute("""
+            INSERT OR IGNORE INTO categorias (
+                nome, dia_vencimento, tipo, recorrente, ativa, is_demo, updated_at
+            )
+            VALUES (?, NULL, 'manual', 0, 1, 1, ?)
+        """, (nome, timestamp))
+        categorias_inseridas += cur.rowcount
+
+    for mes, categoria, valor in DADOS_INICIAIS:
+        cur.execute("""
+            INSERT OR IGNORE INTO lancamentos (
+                mes, categoria, valor, status_lancamento, is_demo, updated_at
+            )
+            VALUES (?, ?, ?, 'Pago', 1, ?)
+        """, (mes, categoria, valor, timestamp))
+        lancamentos_inseridos += cur.rowcount
+
+    con.commit()
+    con.close()
+    return {
+        "categorias_inseridas": categorias_inseridas,
+        "lancamentos_inseridos": lancamentos_inseridos,
+    }
+
+
 def table_columns_sqlite(table):
     con = sqlite3.connect(DB_FILE)
     try:
@@ -285,10 +390,14 @@ def ensure_local_schema_for_sync():
         "lancamentos": [
             ("status_lancamento", "TEXT DEFAULT 'Pago'"),
             ("updated_at", "TEXT"),
+            ("is_demo", "INTEGER DEFAULT 0"),
         ],
         "receitas": [("updated_at", "TEXT")],
         "metas": [("updated_at", "TEXT")],
-        "categorias": [("updated_at", "TEXT")],
+        "categorias": [
+            ("updated_at", "TEXT"),
+            ("is_demo", "INTEGER DEFAULT 0"),
+        ],
         "pendencias_ignoradas": [("updated_at", "TEXT")],
     }
     for table, columns in migrations.items():
@@ -610,8 +719,6 @@ def get_categories(active_only=True):
         {where}
         ORDER BY nome
     """)
-    if not rows:
-        return [(nome, None, "manual", 0, 1) for nome in sorted(CATEGORIAS_PADRAO)]
     return rows
 
 
@@ -631,8 +738,6 @@ def get_recurring_categories():
         WHERE recorrente=1 AND ativa=1
         ORDER BY COALESCE(dia_vencimento, 99), nome
     """)
-    if not rows:
-        return CONTAS_RECORRENTES
     return [{"categoria": nome, "dia": dia, "tipo": tipo or "manual"} for nome, dia, tipo in rows]
 
 
@@ -677,6 +782,8 @@ def _rows_as_dicts(table):
     cols = supabase_tables[table] if "supabase_tables" in globals() else SUPABASE_TABLES[table]
     available = table_columns_sqlite(table)
     select_cols = [c for c in cols if c in available]
+    if "is_demo" in available and "is_demo" not in select_cols:
+        select_cols.append("is_demo")
     rows = query(f"SELECT {','.join(select_cols)} FROM {table}")
     result = []
     for row in rows:
@@ -697,6 +804,8 @@ def sync_local_to_supabase():
     total = 0
     for table in supabase_tables:
         rows = _rows_as_dicts(table)
+        rows = _filter_rows_for_supabase_sync(table, rows)
+        rows = _strip_local_only_fields(rows)
         if not rows:
             continue
         if table == "lancamentos":
