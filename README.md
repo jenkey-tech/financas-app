@@ -49,16 +49,6 @@ The application follows an **offline-first architecture**, storing all data loca
 
 > *Screenshots will be added soon.*
 
-You can replace this section with images such as:
-
-```markdown
-![Dashboard](docs/images/dashboard.png)
-
-![Cash Flow](docs/images/cashflow.png)
-
-![Goals](docs/images/goals.png)
-```
-
 ---
 
 # Technology Stack
