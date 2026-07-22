@@ -1,128 +1,325 @@
 # Finanças App
 
-Aplicação desktop de **finanças pessoais** em Python, com interface gráfica moderna (Tkinter + ttkbootstrap), controle de despesas por categoria, dashboard, insights visuais, fluxo de caixa e metas.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
+![Database](https://img.shields.io/badge/Database-SQLite-blue)
+![Cloud](https://img.shields.io/badge/Cloud-Supabase-success)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Version](https://img.shields.io/badge/Version-3.4.3-orange)
 
-Funciona **100% offline** com SQLite. A sincronização com **Supabase** é opcional, para quem quiser replicar dados entre dispositivos.
+A modern **personal finance desktop application** built with Python, featuring an intuitive graphical interface, expense tracking, dashboards, financial insights, cash flow analysis, and financial goal management.
 
-**Versão:** 3.4.3 · **Licença:** MIT
-
----
-
-## Destaques
-
-- Dashboard com gráficos de composição e status de pagamentos
-- Controle de vencimentos, débito automático e próximos gastos
-- Insights com tendências, top categorias e recomendações
-- Fluxo de caixa e metas financeiras
-- Sync cloud opcional (SQLite local + fila assíncrona para Supabase)
-- Dados de demonstração fictícios disponíveis apenas via `seed_demo_data()` (chamada manual)
+The application follows an **offline-first architecture**, storing all data locally using SQLite while offering optional cloud synchronization through Supabase.
 
 ---
 
-## Stack
+# Table of Contents
 
-| Camada | Tecnologia |
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Cloud Synchronization](#cloud-synchronization)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
+- [Security](#security)
+- [Development Philosophy](#development-philosophy)
+- [Roadmap](#roadmap)
+- [License](#license)
+
+---
+
+# Features
+
+- 📊 Interactive financial dashboard
+- 💳 Expense management by category
+- 📅 Upcoming payments and due date tracking
+- 🔄 Automatic payment status
+- 📈 Cash flow analysis
+- 🎯 Financial goals
+- 💡 Spending insights and trends
+- ☁️ Optional cloud synchronization
+- 📴 Offline-first operation
+- 🧪 Demo dataset for testing
+
+---
+
+# Screenshots
+
+> *Screenshots will be added soon.*
+
+You can replace this section with images such as:
+
+```markdown
+![Dashboard](docs/images/dashboard.png)
+
+![Cash Flow](docs/images/cashflow.png)
+
+![Goals](docs/images/goals.png)
+```
+
+---
+
+# Technology Stack
+
+| Layer | Technology |
 |--------|------------|
-| Linguagem | Python 3.10+ |
-| Interface | Tkinter, ttk, ttkbootstrap |
-| Gráficos | matplotlib |
-| Banco local | SQLite |
-| Cloud (opcional) | Supabase |
+| Language | Python 3.10+ |
+| UI | Tkinter |
+| Theme | ttkbootstrap |
+| Charts | matplotlib |
+| Local Database | SQLite |
+| Cloud Sync | Supabase |
+| Version Control | Git |
+| Documentation | Markdown |
 
 ---
 
-## Como executar
+# Architecture
 
-### 1. Clonar e instalar
+```text
+                    +----------------------+
+                    |   Desktop Interface  |
+                    |   (Tkinter UI)       |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    | Business Logic Layer |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    | SQLite Local Storage |
+                    +----------+-----------+
+                               |
+                               |
+                    Async Sync Queue
+                               |
+                               v
+                    +----------------------+
+                    |    Supabase Cloud    |
+                    |    (Optional Sync)   |
+                    +----------------------+
+```
+
+## Design Principles
+
+- Offline-first
+- Modular architecture
+- Separation of concerns
+- Local data ownership
+- Optional cloud synchronization
+- Secure credential management
+
+---
+
+# Getting Started
+
+## Clone the repository
+
+```bash
+git clone https://github.com/jenkey-tech/financas-app.git
+
+cd financas-app
+```
+
+---
+
+## Create a virtual environment
+
+### Windows
 
 ```powershell
-git clone https://github.com/jenkey-tech/financas-app.git
-cd financas-app
 python -m venv venv
-.\venv\Scripts\Activate.ps1
+
+.\venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+python -m venv venv
+
+source venv/bin/activate
+```
+
+---
+
+## Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Rodar (modo offline)
+---
 
-```powershell
+## Run the application
+
+```bash
 python main.py
 ```
 
-Na primeira execução, o app cria `financas.db` localmente **sem inserir dados de demonstração automaticamente**.
+During the first execution the application automatically creates the local SQLite database.
 
-Para popular dados fictícios de demo/teste, chame explicitamente `seed_demo_data()` em `db.py` (por exemplo via shell Python). Esses dados ficam marcados com `is_demo=1` e **não são enviados** ao Supabase pela sincronização.
+No sample data is inserted by default.
 
-### 3. Sync com Supabase (opcional)
+To populate demonstration data, manually execute:
 
-```powershell
+```python
+seed_demo_data()
+```
+
+from `db.py`.
+
+Demo records are marked with `is_demo=1` and are never synchronized with Supabase.
+
+---
+
+# Cloud Synchronization
+
+Cloud synchronization is completely optional.
+
+Install additional dependencies:
+
+```bash
 pip install -r requirements-cloud.txt
+```
+
+Create your environment file:
+
+```bash
 copy .env.example .env
 ```
 
-Preencha `.env` com um projeto **seu** (recomendado: projeto separado só para testes):
+Configure your Supabase project:
 
 ```env
-SUPABASE_URL=https://seu-projeto.supabase.co
-SUPABASE_KEY=sua_chave_anon_public
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key
 ```
 
-Execute `sql/supabase_schema.sql` no SQL Editor do Supabase, abra o app e use **Validar banco de dados** → **Recarregar dados**.
+Run the database schema:
 
-> **Segurança:** nunca commite `.env`, `*.db`, backups ou exports. Para uso real em produção, habilite RLS e autenticação no Supabase.
+```
+sql/supabase_schema.sql
+```
+
+Inside the application:
+
+```
+Validate Database
+↓
+
+Reload Data
+```
 
 ---
 
-## Estrutura do projeto
+# Project Structure
 
 ```text
 financas-app/
-├── main.py                 # Ponto de entrada
-├── financas_app.py         # Compatibilidade com execução antiga
-├── config.py               # Constantes e seed de demonstração
-├── db.py                   # SQLite, sync Supabase, fila cloud
-├── utils.py                # Formatação BRL, datas, status
+│
+├── main.py
+├── financas_app.py
+├── config.py
+├── db.py
+├── utils.py
+│
 ├── ui/
-│   └── app.py              # Interface gráfica
+│   └── app.py
+│
 ├── sql/
-│   └── supabase_schema.sql # Schema cloud opcional
-├── docs/                   # Documentação técnica
+│   └── supabase_schema.sql
+│
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── DECISIONS.md
+│   ├── ROADMAP.md
+│   ├── SETUP_DESENVOLVIMENTO.md
+│   └── REPOSITORIOS.md
+│
 ├── requirements.txt
-└── requirements-cloud.txt  # Supabase (opcional)
+├── requirements-cloud.txt
+├── CHANGELOG.md
+└── LICENSE
 ```
 
 ---
 
-## Documentação
+# Documentation
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arquitetura e fluxo de dados |
-| [docs/SETUP_DESENVOLVIMENTO.md](docs/SETUP_DESENVOLVIMENTO.md) | Ambiente de desenvolvimento |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Decisões técnicas (ADR) |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Evolução planejada |
-| [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
-| [docs/REPOSITORIOS.md](docs/REPOSITORIOS.md) | Repositório público vs. desenvolvimento privado |
-
----
-
-## O que não vai para o Git
-
-- `.env` — credenciais Supabase
-- `financas.db` — banco local com seus lançamentos
-- `backups/`, `exports/` — snapshots pessoais
-- `*.csv`, `*.xlsx` — planilhas com dados reais
+| Document | Description |
+|----------|-------------|
+| **ARCHITECTURE.md** | Overall architecture and data flow |
+| **DECISIONS.md** | Architectural Decision Records (ADR) |
+| **ROADMAP.md** | Planned features |
+| **SETUP_DESENVOLVIMENTO.md** | Development environment |
+| **CHANGELOG.md** | Version history |
+| **REPOSITORIOS.md** | Public vs private repository strategy |
 
 ---
 
-## Desenvolvimento
+# Security
 
-Este repositório é a **versão pública de portfólio**, sem histórico sensível e sem automações Git embutidas na interface.
+The following files are intentionally excluded from version control:
 
-O desenvolvimento diário pode ser feito em um repositório privado separado; alterações estáveis são publicadas aqui via cherry-pick ou cópia manual de módulos.
+- `.env`
+- SQLite databases
+- User backups
+- CSV exports
+- Excel exports
+
+Sensitive credentials and personal financial information are never committed.
+
+For production deployments, enabling **Supabase Authentication** and **Row Level Security (RLS)** is strongly recommended.
 
 ---
 
-## Licença
+# Development Philosophy
 
-MIT — veja [LICENSE](LICENSE).
+This repository contains the **public portfolio version** of the project.
+
+The objective is not only to demonstrate application functionality, but also software engineering practices such as:
+
+- Project organization
+- Documentation
+- Architecture
+- Versioning
+- Maintainability
+- Secure development
+
+---
+
+# Roadmap
+
+Planned future improvements include:
+
+- [ ] Docker support
+- [ ] GitHub Actions CI
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Authentication
+- [ ] Multi-user support
+- [ ] REST API
+- [ ] Cloud-first deployment
+- [ ] Performance improvements
+- [ ] Reporting enhancements
+
+---
+
+# Contributing
+
+Suggestions, improvements and bug reports are always welcome.
+
+Feel free to open an Issue or submit a Pull Request.
+
+---
+
+# License
+
+This project is licensed under the MIT License.
+
+See the [LICENSE](LICENSE) file for details.
